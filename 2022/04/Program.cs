@@ -1,4 +1,6 @@
-﻿var lines = await File.ReadAllLinesAsync("input.txt");
+﻿// Day 4: Camp Cleanup
+
+var lines = await File.ReadAllLinesAsync("input.txt");
 
 var containedPairs = 0;
 foreach (var line in lines)
@@ -20,6 +22,8 @@ foreach (var line in lines)
         containedPairs++;
     }
 }
+
+// In how many assignment pairs does one range fully contain the other?
 Console.WriteLine($"Part 1 Answer: {containedPairs}");
 
 containedPairs = 0;
@@ -42,4 +46,6 @@ foreach (var line in lines)
         containedPairs++;
     }
 }
+
+// In how many assignment pairs do the ranges overlap?
 Console.WriteLine($"Part 2 Answer: {containedPairs}");

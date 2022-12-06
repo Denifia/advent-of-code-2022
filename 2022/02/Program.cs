@@ -1,4 +1,6 @@
-﻿const int Rock = 1;
+﻿// Day 2: Rock Paper Scissors
+
+const int Rock = 1;
 const int Paper = 2;
 const int Sizzors = 3;
 const int Win = 6;
@@ -7,6 +9,7 @@ const int Loss = 0;
 
 var lines = await File.ReadAllLinesAsync("input.txt");
 
+// XYZ is the hand to play
 // A = Rock, B = Paper, C = Sizzors
 // X = Rock, Y = Paper, Z = Sizzors
 var totalScoreV1 = lines.Sum(line => line switch
@@ -22,8 +25,11 @@ var totalScoreV1 = lines.Sum(line => line switch
     "C Z" => Sizzors + Draw,
     _ => throw new IndexOutOfRangeException()
 });
+
+// What would your total score be if everything goes exactly according to your strategy guide?
 Console.WriteLine($"Part 1 Answer: {totalScoreV1}");
 
+// XYZ is the outcome of the game
 // A = Rock, B = Paper, C = Sizzors
 // X = Loss, Y = Draw, Z = win
 var totalScoreV2 = lines.Sum(line => line switch
@@ -39,4 +45,6 @@ var totalScoreV2 = lines.Sum(line => line switch
     "C Z" => Rock + Win,
     _ => throw new IndexOutOfRangeException()
 });
+
+// Following the Elf's instructions for the second column, what would your total score be if everything goes exactly according to your strategy guide?
 Console.WriteLine($"Part 2 Answer: {totalScoreV2}");

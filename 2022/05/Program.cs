@@ -1,4 +1,6 @@
-﻿var lines = await File.ReadAllLinesAsync("input.txt");
+﻿// Day 5: Supply Stacks
+
+var lines = await File.ReadAllLinesAsync("input.txt");
 var startingArrangement = lines[..8].Reverse().ToArray();
 var instructions = lines[10..];
 
@@ -26,6 +28,8 @@ foreach (var instruction in instructions)
     }
 }
 var topOfStacks = string.Join(string.Empty, stacksV1.Select(x => x.Peek()));
+
+// After the rearrangement procedure completes, what crate ends up on top of each stack?
 Console.WriteLine($"Part 1 Answer: {topOfStacks}");
 
 // Move many at a time
@@ -45,6 +49,8 @@ foreach (var instruction in instructions)
 	}
 }
 topOfStacks = string.Join(string.Empty, stacksV2.Select(x => x.Peek()));
+
+// After the rearrangement procedure completes with the CrateMover 9001, what crate ends up on top of each stack?
 Console.WriteLine($"Part 2 Answer: {topOfStacks}");
 
 static int[] GetInstructionParts(string instruction)
