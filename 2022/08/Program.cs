@@ -9,10 +9,10 @@ for (int row = 0; row < lines.Length; row++)
 {
     string? line = lines[row];
     for (int column = 0; column < line.Length; column++)
-	{
+    {
         var height = line[column];
         trees.Add((row, column), new Tree(height, row, column));
-	}
+    }
 }
 
 var rowWidth = trees.Values.Max(x => x.Row) + 1;
@@ -66,15 +66,15 @@ Console.WriteLine($"Part 2 Answer: {trees.Values.Max(x => x.Score)}");
 
 class Tree
 {
-	public int Height { get; set; }
-	public int Row { get; set; }
+    public int Height { get; set; }
+    public int Row { get; set; }
     public int Column { get; set; }
     public bool Visible { get; set; } = false;
     public int Score { get; set; }
 
-	public Tree(char height, int row, int column)
-	{
-		Height = int.Parse(height.ToString());
+    public Tree(char height, int row, int column)
+    {
+        Height = int.Parse(height.ToString());
         Row = row;
         Column = column;
     }
