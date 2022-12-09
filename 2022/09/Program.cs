@@ -1,13 +1,7 @@
 ﻿// Day 9: Rope Bridge
 
-using System.Security.Cryptography.X509Certificates;
-
 var lines = await File.ReadAllLinesAsync("input.txt");
-var instructions = lines.Select(x =>
-{
-    var parts = x.Split(' ');
-    return (parts[0], parts[1]);
-}).ToArray();
+var instructions = lines.Select(x => (x[0], int.Parse(x[2..]))).ToArray();
 
 int Simulate(int count)
 {
@@ -16,23 +10,22 @@ int Simulate(int count)
 
     foreach (var instruction in instructions)
     {
-        var n = int.Parse(instruction.Item2);
         Action<Knot> action = instruction.Item1 switch
         {
-            "U" => (knot) => knot.Col++,
-            "D" => (knot) => knot.Col--,
-            "L" => (knot) => knot.Row--,
-            "R" => (knot) => knot.Row++,
+            'U' => (knot) => knot.Col++,
+            'D' => (knot) => knot.Col--,
+            'L' => (knot) => knot.Row--,
+            'R' => (knot) => knot.Row++,
             _ => (x) => { }
         };
-        for (int i = 0; i < n; i++)
+        for (int i = 0; i < instruction.Item2; i++)
         {
             action.Invoke(knots[0]); // move head
             MoveOtherKnots();
         }
     }
 
-    return visited.Count();
+    return visited.Count;
 
     void MoveOtherKnots()
     {
