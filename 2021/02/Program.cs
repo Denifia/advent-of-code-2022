@@ -19,10 +19,10 @@ foreach (var instruction in instructions)
 }
 
 // What do you get if you multiply your final horizontal position by your final depth?
-Console.WriteLine($"{submarine.Depth * submarine.HorizontalPosition}");
+Console.WriteLine($"Part 1 Answer: {submarine.Depth * submarine.HorizontalPosition}");
 
 // What do you get if you multiply your final horizontal position by your final depth?
-Console.WriteLine($"{submarineV2.Depth * submarineV2.HorizontalPosition}");
+Console.WriteLine($"Part 2 Answer: {submarineV2.Depth * submarineV2.HorizontalPosition}");
 
 class Submarine
 {
