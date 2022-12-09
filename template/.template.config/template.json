@@ -1,0 +1,23 @@
+{
+    "$schema": "http://json.schemastore.org/template",
+    "author": "Denifia",
+    "classifications": [ "Common", "Console", "aoc", "advent-of-code" ],
+    "identity": "AdventOfCode.ConsoleProject",
+    "name": "Advent of Code starter project",
+    "shortName": "aoc",
+    "tags": {
+      "language": "C#",
+      "type": "project"
+    },
+    "sourceName": "aoc",
+    "preferNameDirectory": true,
+    "sources": [
+      {
+        "modifiers": [
+          {
+            "exclude": [ "readme.md" ]
+          }
+        ]
+      }
+    ]
+  }
