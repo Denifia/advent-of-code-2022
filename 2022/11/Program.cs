@@ -19,12 +19,12 @@ foreach (var line in lines)
 // last monkey has not trailing newline
 monkeys.Add(monkeyBuilder.Build());
 
-for (int round = 0; round < 20; round++)
+var monkeyBusinessAtRound20 = 0;
+for (int round = 1; round <= 20; round++)
 {
     foreach (var monkey in monkeys)
     {
-        if (!monkey.HoldingItems) continue;
-
+        var monkeyNumber = monkeys.IndexOf(monkey);
         while (monkey.HoldingItems)
         {
             monkey.InspectNextItem();
@@ -32,22 +32,30 @@ for (int round = 0; round < 20; round++)
             monkeys[catchingMonkey].CatchItem(thrownItem);
         }
     }
+
+    if (round == 20)
+    {
+        monkeyBusinessAtRound20 = monkeys
+            .OrderByDescending(x => x.InspectedItems)
+            .Take(2)
+            .Aggregate(1, (x, monkey) => x * monkey.InspectedItems);
+    }
 }
 
-var monkeyBusiness = monkeys
-    .OrderByDescending(x => x.InspectedItems)
-    .Take(2)
-    .Aggregate(1, (x, monkey) => x * monkey.InspectedItems);
-
 // What is the level of monkey business after 20 rounds of stuff-slinging simian shenanigans?
-Console.WriteLine($"Part 1 Answer: {monkeyBusiness}");
+Console.WriteLine($"Part 1 Answer: {monkeyBusinessAtRound20}");
 
-// question 2
-Console.WriteLine($"Part 2 Answer: {true}");
+//var monkeyBusinessAtRound10000 = monkeys
+//.OrderByDescending(x => x.InspectedItems)
+//.Take(2)
+//.Aggregate(1, (x, monkey) => x * monkey.InspectedItems);
+
+// Starting again from the initial state in your puzzle input, what is the level of monkey business after 10000 rounds?
+//Console.WriteLine($"Part 2 Answer: {monkeyBusinessAtRound10000}");
 
 class Item
 {
-    public int WorryLevel { get; set; }
+    public long WorryLevel { get; set; }
     public Item(int worryLevel) => WorryLevel = worryLevel;
     public void WorryRelief() => WorryLevel /= 3;
 }
