@@ -181,7 +181,7 @@ class PathFinding
             return false;
         }).Where(other =>
         {
-            if (Math.Abs(other.height - node.height) <= 1)
+            if ((other.height - node.height) <= 1)
             {
                 return true;
             }
