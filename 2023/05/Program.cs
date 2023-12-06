@@ -1,20 +1,13 @@
 ﻿// If You Give A Seed A Fertilizer
 
 var lines = File.ReadAllLines("input.txt");
-var (seeds, maps) = ParseInput(lines, useSeedRanges: true);
+var (seeds, maps) = ParseInput(lines);
 var lowestLocation = GetLowestLocations(seeds, maps);
+Console.WriteLine($"Answer: {lowestLocation}");
 
-// question 1
-Console.WriteLine($"Part 1 Answer: {lowestLocation}");
-
-// question 2
-Console.WriteLine($"Part 2 Answer: {true}");
-
-static (IEnumerable<long> seeds, List<Map> maps) ParseInput(string[] lines, bool useSeedRanges)
+static (Chunk[] seeds, List<Map> maps) ParseInput(string[] lines)
 {
-    var seeds = useSeedRanges
-        ? GetSeedListFromFirstLineAsRanges(lines)
-        : GetSeedListFromFirstLine(lines);
+    var seeds = GetSeedListFromFirstLineAsRanges(lines);
 
     List<Map> maps = [];
     var mapIndex = -1;
@@ -39,25 +32,21 @@ static (IEnumerable<long> seeds, List<Map> maps) ParseInput(string[] lines, bool
     return (seeds, maps);
 }
 
-static IEnumerable<long> GetSeedListFromFirstLine(string[] lines) 
-    => lines.First()["seeds: ".Length..].Split(" ").Select(long.Parse).ToArray();
-
-static IEnumerable<long> GetSeedListFromFirstLineAsRanges(string[] lines)
+static Chunk[] GetSeedListFromFirstLineAsRanges(string[] lines)
 {
     var numbers = lines.First()["seeds: ".Length..].Split(" ").Select(long.Parse).ToArray();
+
+    List<Chunk> chunks = [];
 
     for (var i = 0; i < numbers.Length; i += 2)
     {
         var seedStart = numbers[i];
         var seedRange = numbers[i + 1];
 
-        Console.WriteLine($"start = {seedStart}, range = {seedRange}");
-
-        for (var j = 0; j < seedRange; j++) 
-        { 
-            yield return seedStart + j;
-        }
+        chunks.Add(new Chunk(seedStart, seedStart + seedRange));
     }
+
+    return chunks.ToArray();
 }
 
 static void AddToMap(Map map, string line)
@@ -66,46 +55,58 @@ static void AddToMap(Map map, string line)
     var destinationStart = long.Parse(parts[0]);
     var sourceStart = long.Parse(parts[1]);
     var range = long.Parse(parts[2]);
-    map.Ranges.Add(new Range(sourceStart, sourceStart + range, destinationStart - sourceStart));
+    map.Ranges.Add(new Range(sourceStart, sourceStart + range - 1, destinationStart - sourceStart));
 }
 
-static long GetLowestLocations(IEnumerable<long> seeds, List<Map> maps)
+static long GetLowestLocations(Chunk[] seedChunks, List<Map> maps)
 {
-    long minLocation = 0;
-
-    foreach (var seed in seeds)
+    foreach (var map in maps)
     {
-        var source = seed;
-        foreach (var map in maps)
-        {
-            source = GetFromMapOrSame(source, map);
-        }
-
-        if (minLocation == 0 || source <  minLocation)
-        {
-            minLocation = source;
-            Console.WriteLine($"new min location of {minLocation}");
-        }
+        seedChunks = map.ProcessChunks(seedChunks);
     }
 
-    return minLocation;
-
-    static long GetFromMapOrSame(long source, Map map)
-    {
-        var range = map.Ranges.FirstOrDefault(x => source >= x.Start && source <= x.End);
-
-        if (range is null)
-        {
-            return source;
-        }
-
-        return source + range.Offset;
-    }
+    return seedChunks.Min(x => x.Start);
 }
 
 class Map()
 {
     public List<Range> Ranges { get; set; } = [];
+
+    internal Chunk[] ProcessChunks(Chunk[] seedChunks)
+    {
+        List<Chunk> chunks = [];
+        foreach (var chunk in seedChunks)
+        {
+            for (var i = chunk.Start; i <= chunk.End; i++)
+            {
+                // Covered by a range?
+                var range = Ranges.FirstOrDefault(x => i >= x.Start && i <= x.End);
+                if (range is not null)
+                {
+                    var chunkEnd = Math.Min(chunk.End, range.End);
+                    chunks.Add(new Chunk(i, chunkEnd, range.Offset));
+                    i = chunkEnd;
+                    continue;
+                }
+
+                // Not covered by a range?
+                var nextRange = Ranges.OrderBy(x => x.Start).FirstOrDefault(x => x.Start > i);
+                if (nextRange is not null)
+                {
+                    var chunkEnd = Math.Min(chunk.End, nextRange.Start);
+                    chunks.Add(new Chunk(i, chunkEnd));
+                    i = chunkEnd;
+                    continue;
+                }
+
+                // No future ranges to be caught by
+                chunks.Add(new Chunk(i, chunk.End));
+                break;
+            }
+        }
+
+        return [.. chunks];
+    }
 }
 
 record Range(long Start, long End, long Offset)
@@ -113,4 +114,10 @@ record Range(long Start, long End, long Offset)
     public long Total = End - Start;
 }
 
-record Chunk(long Start, long End);
+record Chunk(long Start, long End)
+{
+    public Chunk(long start, long end, long offset)
+        : this(start + offset, end + offset)
+    {
+    }
+}
