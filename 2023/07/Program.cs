@@ -6,11 +6,7 @@ var totalWinnings = GetHandsFromInput(lines)
             .Select((hand, index) => hand.Bid * (index + 1))
             .Aggregate(0, (total, hand) => total + hand);
 
-// question 1
-Console.WriteLine($"Part 1 Answer: {totalWinnings}");
-
-// question 2
-Console.WriteLine($"Part 2 Answer: {true}");
+Console.WriteLine($"Answer: {totalWinnings}");
 
 IEnumerable<Hand> GetHandsFromInput(string[] lines)
 {
@@ -31,6 +27,9 @@ IEnumerable<Hand> GetHandsFromInput(string[] lines)
 
 class Hand : IComparable<Hand>
 {
+    // Duplicate of Card.LabelStrengthMap, meh
+    private static readonly char[] LabelStrengthMap = ['J', '2', '3', '4', '5', '6', '7', '8', '9', 'T', 'Q', 'K', 'A'];
+
     public Hand(Card[] cards, int bid)
     {
         Cards = cards;
@@ -41,9 +40,22 @@ class Hand : IComparable<Hand>
     public Card[] Cards { get; }
     public int Bid { get; }
     public HandType HandType { get; }
+
     private HandType DetermineHandType()
     {
-        var groups = Cards
+        if (Cards.All(x => x.Label != 'J'))
+            return DetermineHandTypeInternal(Cards);
+
+        return LabelStrengthMap
+            .Skip(1)
+            .Select(x => DetermineHandTypeInternal(Cards.Select(y => y.Label == 'J' ? new Card(x) : y).ToArray()))
+            .OrderDescending()
+            .First();
+    }
+
+    private static HandType DetermineHandTypeInternal(Card[] cards)
+    {
+        var groups = cards
                         .GroupBy(x => x.Label)
                         .Select(x => new { x.Key, Count = x.Count() })
                         .OrderByDescending(x => x.Count)
@@ -100,7 +112,8 @@ enum HandType
 
 class Card
 {
-    private static readonly char[] LabelStrengthMap = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'];
+    //private static readonly char[] LabelStrengthMap = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'];
+    private static readonly char[] LabelStrengthMap = ['J', '2', '3', '4', '5', '6', '7', '8', '9', 'T', 'Q', 'K', 'A'];
 
     public Card(char label)
     {
