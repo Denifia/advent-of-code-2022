@@ -4,13 +4,18 @@ var lines = File.ReadAllLines("input.txt");
 var (instructions, map) = ParseInput(lines);
 var repeatingInstructions = RepeatingInstructions(instructions);
 
+var starts = map.Where(x => x.Key.EndsWith("Z")).Select(x => x.Key).ToArray();
+var walkers = starts.Select(x => WalkMap(x, repeatingInstructions, map).GetEnumerator()).ToArray();
+
 var count = 0;
-var row = "AAA";
-foreach (var instruction in repeatingInstructions)
+while (true)
 {
+    foreach (var walker in walkers)
+    {
+        walker.MoveNext();
+    }
     count++;
-    row = map[row][instruction];
-    if (row == "ZZZ")
+    if (walkers.All(x => x.Current.EndsWith("Z")))
     {
         break;
     }
@@ -18,6 +23,16 @@ foreach (var instruction in repeatingInstructions)
 
 // question 
 Console.WriteLine($"Answer: {count}");
+
+IEnumerable<string> WalkMap(string start, IEnumerable<int> repeatingInstructions, Dictionary<string, string[]> map)
+{
+    var row = start;
+    foreach (var instruction in repeatingInstructions)
+    {
+        row = map[row][instruction];
+        yield return row;
+    }
+}
 
 
 (int[], Dictionary<string, string[]>) ParseInput(string[] lines)
