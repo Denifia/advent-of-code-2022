@@ -3,9 +3,12 @@
 using System.Data;
 
 var lines = File.ReadAllLines("input.txt");
+var startTile = '|';
+
 var grid = new Grid(lines);
 var startingNode = grid.FindStartingNode();
-grid.UpdateNode(startingNode, '|');
+
+grid.UpdateNode(startingNode, startTile);
 
 var loop = new List<Node>() 
 { 
@@ -13,7 +16,7 @@ var loop = new List<Node>()
 };
 
 var currentNode = startingNode;
-currentNode = currentNode with { Tile = '|' };
+currentNode = currentNode with { Tile = startTile };
 var starting = true;
 
 try
@@ -24,7 +27,7 @@ try
         var nextNode = starting ? availableNodes.First() : availableNodes.First(node => loop[^2] != node);
         starting = false;
 
-        //Console.WriteLine($"Next node is {nextNode.Tile} at {nextNode.Coordinates.Row} {nextNode.Coordinates.Column}");
+        //Console.WriteLine($"Next node is {nextNode.Tile} at {nextNode.Coordinates.Row} {nextNode.Coordinates.Column}"); 
 
         if (nextNode.Coordinates == loop[0].Coordinates)
         {
@@ -41,7 +44,76 @@ catch (Exception ex)
     grid.Dump(loop.ToArray());
 }
 
+loop[0] = startingNode with { Tile = startTile };
+var newGrid = grid.Dump(loop.ToArray());
 Console.WriteLine($"Answer: {loop.Count / 2}");
+
+List<char> consideredTiles = [Tiles.SouthEast, Tiles.SouthWest, Tiles.NorthEast, Tiles.NorthWest, Tiles.EastWest];
+loop = loop.Where(x => consideredTiles.Contains(x.Tile)).ToList();
+
+var inside = 0;
+
+for (int row = 0; row < newGrid.Length; row++)
+{
+    for (int col = 0; col < newGrid[0].Length; col++)
+    {
+        if (newGrid[row][col] == Tiles.Ground)
+        {
+            var ns = loop
+                .Where(x => x.Coordinates.Column == col && x.Coordinates.Row < row)
+                .OrderBy(x => x.Coordinates.Row)
+                .ToArray();
+
+            var lastn = ' ';
+            var count = 0;
+            foreach (var item in ns)
+            {
+                if (item.Tile == Tiles.EastWest)
+                {
+                    count++;
+                    lastn = item.Tile;
+                    continue;
+                }
+
+                if (item.Tile == Tiles.SouthWest || item.Tile == Tiles.SouthEast)
+                {
+                    lastn = item.Tile;
+                    continue;
+                }
+
+                if (item.Tile == Tiles.NorthWest)
+                {
+                    if (lastn == Tiles.SouthEast)
+                        count++;
+
+                    lastn = item.Tile;
+                    continue;
+                }
+
+                if (item.Tile == Tiles.NorthEast)
+                {
+                    if (lastn == Tiles.SouthWest)
+                        count++;
+
+                    lastn = item.Tile;
+                    continue;
+                }
+            }
+
+            if (count % 2 != 0)
+            {
+                Console.WriteLine($"{row + 1} {col + 1} : {string.Join(string.Empty, ns.Select(x => x.Tile).ToArray())} => true");
+                inside++;
+                continue;
+            }
+
+            //Console.WriteLine($"{row + 1} {col + 1} : {string.Join(string.Empty, ns.Select(x => x.Tile))} => false");
+        }
+    }
+}
+static bool IsEdge(Node x) => x.Tile == Tiles.NorthSouth || x.Tile == Tiles.EastWest;
+
+Console.WriteLine($"Answer2: {inside}");
 
 // zero based row and column
 record Node(char Tile, Coordinates Coordinates)
@@ -180,7 +252,7 @@ class Grid
         throw new KeyNotFoundException();
     }
 
-    public void Dump(Node[] nodes)
+    public char[][] Dump(Node[] nodes)
     {
         for (int row = 0; row < _grid.Length; row++)
         {
@@ -196,13 +268,8 @@ class Grid
         }
 
         File.WriteAllLines("output.txt", _grid.Select(x => string.Join(string.Empty, x)).ToArray());
+
+        return _grid;
     }
-
-    //public Node DetectStratingNodeRealTile(Node startingNode)
-    //{
-    //    var nodes = startingNode.CardinalCoordinates().Select(x => (x.Item1, GetNode(x.Item2))).ToArray();
-
-        
-    //}
 }
 
