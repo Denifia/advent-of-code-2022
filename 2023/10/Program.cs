@@ -1,4 +1,5 @@
 ﻿// Pipe Maze
+// Part 2 hint: https://en.wikipedia.org/wiki/Point_in_polygon
 
 using System.Data;
 

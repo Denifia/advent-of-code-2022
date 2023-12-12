@@ -1,4 +1,5 @@
 ﻿// Haunted Wasteland
+// Hints: https://simple.wikipedia.org/wiki/Least_common_multiple, https://simple.wikipedia.org/wiki/Greatest_common_divisor
 
 var lines = File.ReadAllLines("input.txt");
 var (instructions, map) = ParseInput(lines);
