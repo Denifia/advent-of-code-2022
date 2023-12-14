@@ -72,8 +72,8 @@ static bool Validate(string[] someLines, int splitIndex, bool offByOne = false)
 	var left = someLines.Take(splitIndex).Reverse().ToArray();
     var right = someLines.Skip(splitIndex).ToArray();
 	var length = Math.Min(left.Length, right.Length);
-	var alreadyOffByOne = false;
-	for (int i = 0; i < length; i++)
+	var alreadyOffByOne = offByOne;
+	for (int i = offByOne ? 1 : 0; i < length; i++)
 	{
 		if (left[i] != right[i])
 		{
@@ -85,7 +85,7 @@ static bool Validate(string[] someLines, int splitIndex, bool offByOne = false)
             return false;
         }
 	}
-	return true;
+	return true && alreadyOffByOne;
 }
 
 static bool OffByOne(string left, string right)
