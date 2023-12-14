@@ -58,21 +58,56 @@ static int FindMirrorPoint(string[] someLines)
 		{
 			return i;
 		}
+		if (OffByOne(someLines[i - 1], someLines[i]) && Validate(someLines, i, true))
+		{
+            return i;
+        }
 	}
+
 	return 0;
 }
 
-static bool Validate(string[] someLines, int splitIndex)
+static bool Validate(string[] someLines, int splitIndex, bool offByOne = false)
 {
 	var left = someLines.Take(splitIndex).Reverse().ToArray();
     var right = someLines.Skip(splitIndex).ToArray();
 	var length = Math.Min(left.Length, right.Length);
+	var alreadyOffByOne = false;
 	for (int i = 0; i < length; i++)
 	{
 		if (left[i] != right[i])
 		{
+			if (OffByOne(left[i], right[i]) && !alreadyOffByOne)
+			{
+				alreadyOffByOne = true;
+				continue;
+            }
             return false;
-        }	
+        }
 	}
 	return true;
 }
+
+static bool OffByOne(string left, string right)
+{
+    var length = Math.Min(left.Length, right.Length);
+    var offByOne = false;
+    for (int i = 0; i < length; i++)
+	{
+        if (left[i] != right[i])
+		{
+            if (offByOne)
+			{
+                return false;
+            }
+            offByOne = true;
+        }
+    }
+
+	if (offByOne)
+	{
+
+	}
+
+    return offByOne;
+}	
