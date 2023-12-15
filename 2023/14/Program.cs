@@ -1,9 +1,8 @@
 ﻿// Parabolic Reflector Dish
 
-using System.Data.Common;
 using System.Diagnostics;
 
-var lines = File.ReadAllLines("test-input.txt");
+var lines = File.ReadAllLines("input.txt");
 
 List<Rock> rocks = [];
 for (int col = 0; col < lines[0].Length; col++)
@@ -23,10 +22,10 @@ for (int col = 0; col < lines[0].Length; col++)
 
 var platform = new Platform(rocks, lines.Count(), lines[0].Length);
 
-long iterations = 3;
+long iterations = 1;
 iterations = 1_000_000_000;
 
-long sampleSize = 500_000;
+long sampleSize = 1000;
 
 Stopwatch stopwatch = Stopwatch.StartNew();
 for (int i = 0; i < iterations; i++)
@@ -63,215 +62,119 @@ class Platform
 {
     public Platform(List<Rock> rocks, int maxRow, int maxCol)
     {
-        Rocks = rocks;
+        //Rocks = rocks;
+
+        foreach (var rock in rocks)
+        {
+            Rocks.Add(rock);
+        }
+
         MaxRow = maxRow;
         MaxCol = maxCol;
-
-        ColumnView = new SortedDictionary<int, Rock>[maxCol];
-        for (int col = 0; col < maxCol; col++)
-        {
-            ColumnView[col] = new SortedDictionary<int, Rock>();
-        }
-
-        RowView = new SortedDictionary<int, Rock>[maxRow];
-        for (int row = 0; row < maxRow; row++)
-        {
-            RowView[row] = new SortedDictionary<int, Rock>();
-        }
-
-        foreach (var rock in Rocks)
-        {
-            ColumnView[rock.Col].Add(rock.Row, rock);
-            RowView[rock.Row].Add(rock.Col, rock);
-        }
     }
 
-    private SortedDictionary<int, Rock>[] ColumnView { get; set; }
-    private SortedDictionary<int, Rock>[] RowView { get; set; }
-
-    public List<Rock> Rocks { get; }
+    public HashSet<Rock> Rocks { get; } = new();
     public int MaxRow { get; }
     public int MaxCol { get; }
 
-    public IEnumerable<int> Rows()
+    //static void SlideRocks(IEnumerable<Rock> rocks, int start, bool incrementing, Func<Rock, int> position, Func<Rock, int> section, Action<Rock, int> slide)
+    static void SlideRocks(IEnumerable<Rock> rocks, int start, bool incrementing, bool horizontal)
     {
-        for (int row = 0; row < MaxRow; row++)
-        {
-            yield return row;
-        }
-    }
-
-    public IEnumerable<int> Columns()
-    {
-        for (int col = 0; col < MaxCol; col++)
-        {
-            yield return col;
-        }
-    }
-
-    public IEnumerable<Rock> TiltingNorth(int column) => ColumnView[column].OrderBy(x => x.Key).Select(x => x.Value);
-
-    public IEnumerable<Rock> TiltingSouth(int column) => ColumnView[column].OrderByDescending(x => x.Key).Select(x => x.Value);
-
-    public IEnumerable<Rock> TiltingWest(int row) => RowView[row].OrderBy(x => x.Key).Select(x => x.Value);
-
-    public IEnumerable<Rock> TiltingEast(int row) => RowView[row].OrderByDescending(x => x.Key).Select(x => x.Value);
-
-    static void SlideRocks(IEnumerable<Rock> rocks, int start, bool incrementing, Func<Rock, int> position, Action<Rock, int> slide)
-    {
+        var previousSection = -1;
         var previousRock = start;
         foreach (var rock in rocks)
         {
+            var section = horizontal
+                    ? rock.Row
+                    : rock.Col;
+
+            if (previousSection == -1)
+            {
+                previousSection = section;
+            } 
+            else if (previousSection != section)
+            {
+                previousRock = start;
+                previousSection = section;
+            }
+
+            var position = horizontal
+                ? rock.Col
+                : rock.Row;
+
             if (!rock.CanMove)
             {
                 previousRock = incrementing
-                    ? position(rock) + 1
-                    : position(rock) - 1;
+                    ? position + 1
+                    : position - 1;
 
                 continue;
             }
 
-            previousRock = position(rock) - previousRock;
+            previousRock = position - previousRock;
 
             if (previousRock != 0)
             {
-                slide(rock, previousRock);
+                if (horizontal)
+                    rock.Col -= previousRock;
+                else
+                    rock.Row -= previousRock;
+
+                position = horizontal
+                    ? rock.Col
+                    : rock.Row;
             }
 
             previousRock = incrementing
-                ? position(rock) + 1
-                : position(rock) - 1;
+                ? position + 1
+                : position - 1;
         }
     }
 
     public void Cycle()
     {
         TiltNorth();
+        //Dump();
         TiltWest();
         TiltSouth();
         TiltEast();
         //Dump();
     }
 
-    void TiltNorth()
-    {
-        foreach (var column in Columns())
-        {
-            var updates = new Dictionary<int, Rock>();
+    //void TiltNorth() => SlideRocks(Rocks.OrderBy(x => x.Col).ThenBy(x => x.Row), 0, true, rock => rock.Row, rock => rock.Col, (rock, amount) => rock.Row -= amount);
+    //void TiltSouth() => SlideRocks(Rocks.OrderBy(x => x.Col).ThenByDescending(x => x.Row), MaxCol - 1, false, rock => rock.Row, rock => rock.Col, (rock, amount) => rock.Row -= amount);
+    //void TiltWest() => SlideRocks(Rocks.OrderBy(x => x.Row).ThenBy(x => x.Col), 0, true, rock => rock.Col, rock => rock.Row, (rock, amount) => rock.Col -= amount);
+    //void TiltEast() => SlideRocks(Rocks.OrderBy(x => x.Row).ThenByDescending(x => x.Col), MaxRow - 1, false, rock => rock.Col, rock => rock.Row, (rock, amount) => rock.Col -= amount);
 
-            SlideRocks(TiltingNorth(column), 0, true, rock => rock.Row, (rock, amount) =>
-            {
-                updates.Add(rock.Row, rock);
-                RowView[rock.Row].Remove(rock.Col);
-                rock.Row -= amount;
-                RowView[rock.Row].Add(rock.Col, rock);
-            });
-
-            foreach (var key in updates.Keys)
-            {
-                ColumnView[column].Remove(key);
-                ColumnView[column].Add(updates[key].Row, updates[key]);
-            }
-        }
-    }
-
-    void TiltSouth()
-    {
-        foreach (var column in Columns())
-        {
-            var updates = new Dictionary<int, Rock>();
-
-            SlideRocks(TiltingSouth(column), MaxCol - 1, false, rock => rock.Row, (rock, amount) =>
-            {
-                updates.Add(rock.Row, rock);
-                RowView[rock.Row].Remove(rock.Col);
-                rock.Row -= amount;
-                RowView[rock.Row].Add(rock.Col, rock);
-            });
-
-            foreach (var key in updates.Keys)
-            {
-                ColumnView[column].Remove(key);
-                ColumnView[column].Add(updates[key].Row, updates[key]);
-            }
-        }
-    }
-
-    void TiltWest()
-    {
-        foreach (var row in Rows())
-        {
-            var updates = new Dictionary<int, Rock>();
-            SlideRocks(TiltingWest(row), 0, true, rock => rock.Col, (rock, amount) =>
-            {
-                updates.Add(rock.Col, rock);
-                ColumnView[rock.Col].Remove(rock.Row);
-                rock.Col -= amount;
-                ColumnView[rock.Col].Add(rock.Row, rock);
-            });
-
-            foreach (var key in updates.Keys)
-            {
-                RowView[row].Remove(key);
-                RowView[row].Add(updates[key].Col, updates[key]);
-            }
-        }
-    }
-
-    void TiltEast()
-    {
-        foreach (var row in Rows())
-        {
-            var updates = new Dictionary<int, Rock>();
-            SlideRocks(TiltingEast(row), MaxRow - 1, false, rock => rock.Col, (rock, amount) =>
-            {
-                updates.Add(rock.Col, rock);
-                ColumnView[rock.Col].Remove(rock.Row);
-                rock.Col -= amount;
-                ColumnView[rock.Col].Add(rock.Row, rock);
-            });
-
-            foreach (var key in updates.Keys)
-            {
-                RowView[row].Remove(key);
-                RowView[row].Add(updates[key].Col, updates[key]);
-            }
-        }
-    }
+    void TiltNorth() => SlideRocks(Rocks.OrderBy(x => x.Col).ThenBy(x => x.Row), 0, true, false);
+    void TiltSouth() => SlideRocks(Rocks.OrderBy(x => x.Col).ThenByDescending(x => x.Row), MaxCol - 1, false, false);
+    void TiltWest() => SlideRocks(Rocks.OrderBy(x => x.Row).ThenBy(x => x.Col), 0, true, true);
+    void TiltEast() => SlideRocks(Rocks.OrderBy(x => x.Row).ThenByDescending(x => x.Col), MaxRow - 1, false, true);
 
     public int GetNorthernLoad()
     {
         var sum = 0;
-        foreach (var col in Columns())
-        {
-            sum += TiltingNorth(col).Where(x => x.CanMove).Sum(x => MaxRow - x.Row);
-        }
+        sum += Rocks.OrderBy(x => x.Col).ThenBy(x => x.Row).Where(x => x.CanMove).Sum(x => MaxRow - x.Row);
         return sum;
     }
 
     void Dump()
     {
-        foreach (var row in Rows())
+        for (int row = 0; row < MaxRow; row++)
         {
-            var previousRock = -1;
-            foreach (var rock in TiltingWest(row))
+            for (int col = 0; col < MaxCol; col++)
             {
-                for (int i = previousRock; i < rock.Col - 1; i++)
+                var rock = Rocks.FirstOrDefault(x => x.Row == row && x.Col == col);
+                if (rock is null)
                 {
                     Console.Write(".");
+                    continue;
                 }
 
                 Console.Write(rock.CanMove ? "O" : "#");
-                previousRock = rock.Col;
             }
-
-            for (int i = previousRock; i < MaxCol - 1; i++)
-            {
-                Console.Write(".");
-            }
-
             Console.WriteLine();
         }
-        Console.WriteLine();
+        Console.WriteLine();   
     }
 }
