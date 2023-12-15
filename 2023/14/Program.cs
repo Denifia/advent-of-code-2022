@@ -1,5 +1,6 @@
 ﻿// Parabolic Reflector Dish
 
+using System.Data.Common;
 using System.Diagnostics;
 
 var lines = File.ReadAllLines("test-input.txt");
@@ -22,16 +23,21 @@ for (int col = 0; col < lines[0].Length; col++)
 
 var platform = new Platform(rocks, lines.Count(), lines[0].Length);
 
+long iterations = 3;
+iterations = 1_000_000_000;
+
+long sampleSize = 500_000;
+
 Stopwatch stopwatch = Stopwatch.StartNew();
-for (int i = 0; i < 1_000_000_000; i++)
+for (int i = 0; i < iterations; i++)
 {
     platform.Cycle();
-    if (i > 0 && i % 1_000_000 == 0)
+    if (i > 0 && i % sampleSize == 0)
         break;
 }
 stopwatch.Stop();
 
-var totalSeconds = (stopwatch.ElapsedMilliseconds / 1000) * (1_000_000_000 / 1_000_000);
+var totalSeconds = (stopwatch.ElapsedMilliseconds / 1000) * (iterations / sampleSize);
 var timespan = TimeSpan.FromSeconds(totalSeconds);
 
 var sum = platform.GetNorthernLoad();
@@ -60,7 +66,28 @@ class Platform
         Rocks = rocks;
         MaxRow = maxRow;
         MaxCol = maxCol;
+
+        ColumnView = new SortedDictionary<int, Rock>[maxCol];
+        for (int col = 0; col < maxCol; col++)
+        {
+            ColumnView[col] = new SortedDictionary<int, Rock>();
+        }
+
+        RowView = new SortedDictionary<int, Rock>[maxRow];
+        for (int row = 0; row < maxRow; row++)
+        {
+            RowView[row] = new SortedDictionary<int, Rock>();
+        }
+
+        foreach (var rock in Rocks)
+        {
+            ColumnView[rock.Col].Add(rock.Row, rock);
+            RowView[rock.Row].Add(rock.Col, rock);
+        }
     }
+
+    private SortedDictionary<int, Rock>[] ColumnView { get; set; }
+    private SortedDictionary<int, Rock>[] RowView { get; set; }
 
     public List<Rock> Rocks { get; }
     public int MaxRow { get; }
@@ -82,13 +109,13 @@ class Platform
         }
     }
 
-    public IEnumerable<Rock> TiltingNorth(int column) => Rocks.Where(x => x.Col == column).OrderBy(x => x.Row);
+    public IEnumerable<Rock> TiltingNorth(int column) => ColumnView[column].OrderBy(x => x.Key).Select(x => x.Value);
 
-    public IEnumerable<Rock> TiltingSouth(int column) => Rocks.Where(x => x.Col == column).OrderByDescending(x => x.Row);
+    public IEnumerable<Rock> TiltingSouth(int column) => ColumnView[column].OrderByDescending(x => x.Key).Select(x => x.Value);
 
-    public IEnumerable<Rock> TiltingWest(int row) => Rocks.Where(x => x.Row == row).OrderBy(x => x.Col);
+    public IEnumerable<Rock> TiltingWest(int row) => RowView[row].OrderBy(x => x.Key).Select(x => x.Value);
 
-    public IEnumerable<Rock> TiltingEast(int row) => Rocks.Where(x => x.Row == row).OrderByDescending(x => x.Col);
+    public IEnumerable<Rock> TiltingEast(int row) => RowView[row].OrderByDescending(x => x.Key).Select(x => x.Value);
 
     static void SlideRocks(IEnumerable<Rock> rocks, int start, bool incrementing, Func<Rock, int> position, Action<Rock, int> slide)
     {
@@ -130,7 +157,21 @@ class Platform
     {
         foreach (var column in Columns())
         {
-            SlideRocks(TiltingNorth(column), 0, true, rock => rock.Row, (rock, amount) => rock.Row -= amount);
+            var updates = new Dictionary<int, Rock>();
+
+            SlideRocks(TiltingNorth(column), 0, true, rock => rock.Row, (rock, amount) =>
+            {
+                updates.Add(rock.Row, rock);
+                RowView[rock.Row].Remove(rock.Col);
+                rock.Row -= amount;
+                RowView[rock.Row].Add(rock.Col, rock);
+            });
+
+            foreach (var key in updates.Keys)
+            {
+                ColumnView[column].Remove(key);
+                ColumnView[column].Add(updates[key].Row, updates[key]);
+            }
         }
     }
 
@@ -138,7 +179,21 @@ class Platform
     {
         foreach (var column in Columns())
         {
-            SlideRocks(TiltingSouth(column), MaxCol - 1, false, rock => rock.Row, (rock, amount) => rock.Row -= amount);
+            var updates = new Dictionary<int, Rock>();
+
+            SlideRocks(TiltingSouth(column), MaxCol - 1, false, rock => rock.Row, (rock, amount) =>
+            {
+                updates.Add(rock.Row, rock);
+                RowView[rock.Row].Remove(rock.Col);
+                rock.Row -= amount;
+                RowView[rock.Row].Add(rock.Col, rock);
+            });
+
+            foreach (var key in updates.Keys)
+            {
+                ColumnView[column].Remove(key);
+                ColumnView[column].Add(updates[key].Row, updates[key]);
+            }
         }
     }
 
@@ -146,7 +201,20 @@ class Platform
     {
         foreach (var row in Rows())
         {
-            SlideRocks(TiltingWest(row), 0, true, rock => rock.Col, (rock, amount) => rock.Col -= amount);
+            var updates = new Dictionary<int, Rock>();
+            SlideRocks(TiltingWest(row), 0, true, rock => rock.Col, (rock, amount) =>
+            {
+                updates.Add(rock.Col, rock);
+                ColumnView[rock.Col].Remove(rock.Row);
+                rock.Col -= amount;
+                ColumnView[rock.Col].Add(rock.Row, rock);
+            });
+
+            foreach (var key in updates.Keys)
+            {
+                RowView[row].Remove(key);
+                RowView[row].Add(updates[key].Col, updates[key]);
+            }
         }
     }
 
@@ -154,7 +222,20 @@ class Platform
     {
         foreach (var row in Rows())
         {
-            SlideRocks(TiltingEast(row), MaxRow - 1, false, rock => rock.Col, (rock, amount) => rock.Col -= amount);
+            var updates = new Dictionary<int, Rock>();
+            SlideRocks(TiltingEast(row), MaxRow - 1, false, rock => rock.Col, (rock, amount) =>
+            {
+                updates.Add(rock.Col, rock);
+                ColumnView[rock.Col].Remove(rock.Row);
+                rock.Col -= amount;
+                ColumnView[rock.Col].Add(rock.Row, rock);
+            });
+
+            foreach (var key in updates.Keys)
+            {
+                RowView[row].Remove(key);
+                RowView[row].Add(updates[key].Col, updates[key]);
+            }
         }
     }
 
