@@ -1,7 +1,11 @@
 ﻿// Title
 
-
 var lines = File.ReadAllLines("input.txt");
+
+var maxEnergized = 0;
+var maxRow = lines.Length - 1;
+var maxCol = lines[0].Length - 1;
+
 var tiles = new List<Tile>();
 for (int row = 0; row < lines.Length; row++)
 {
@@ -13,58 +17,103 @@ for (int row = 0; row < lines.Length; row++)
 }
 
 List<Beam> beams = [new Beam()];
-beams[0].MoveTo(tiles.First(), Direction.Right);
-tiles.First().Energized = true;
 
-while (beams.Any(x => !x.Done))
+for (int row = 0; row < lines.Length; row++)
 {
-    var temp = beams.Where(x => !x.Done).ToArray();
-    for (int i = 0; i < temp.Length; i++)
+    for (int col = 0; col < lines[row].Length; col++)
     {
-        var beam = temp[i];
-        (int row, int col) = beam.GetNextTilePosition();
-        if (OutOfBounds(row, col))
+        if (row == 0)
         {
-            beam.Done = true;
-            continue;
+            maxEnergized = Math.Max(maxEnergized, CountEnergizedTiles(tiles, beams, row, col, Direction.Down, maxRow, maxCol));
+            Cleanup();
         }
 
-        var tile = tiles.First(x => x.Row == row && x.Col == col);
-        var result = tile.HandleBeam(beam._direction);
-
-        if (result.Visited)
+        if (row == maxRow)
         {
-            beam.Done = true;
-            continue;
+            maxEnergized = Math.Max(maxEnergized, CountEnergizedTiles(tiles, beams, row, col, Direction.Left, maxRow, maxCol));
+            Cleanup();
         }
 
-        if (result.Split)
+        if (col == 0)
         {
-            // split
-            beam.MoveTo(tile, result.Direction);
-
-            var newBeam = new Beam();
-            newBeam.MoveTo(tile, result.SplitDirection);
-            beams.Add(newBeam);
+            maxEnergized = Math.Max(maxEnergized, CountEnergizedTiles(tiles, beams, row, col, Direction.Right, maxRow, maxCol));
+            Cleanup();
         }
-        else
+
+        if (col == maxRow)
         {
-            // no split
-            beam.MoveTo(tile, result.Direction);
+            maxEnergized = Math.Max(maxEnergized, CountEnergizedTiles(tiles, beams, row, col, Direction.Left, maxRow, maxCol));
+            Cleanup();
         }
     }
 }
 
-bool OutOfBounds(int row, int col)
+void Cleanup()
 {
-    return row < 0 || row >= lines.Length || col < 0 || col >= lines[0].Length;
+    foreach (var tile in tiles)
+    {
+        tile.Cleanup();
+    }
+
+    beams.Clear();
+    beams.Add(new Beam());
 }
 
-// question 1
-Console.WriteLine($"Part 1 Answer: {tiles.Count(x => x.Energized)}");
+int CountEnergizedTiles(List<Tile> tiles, List<Beam> beams, int startRow, int startCol, Direction startDirection, int maxRow, int maxCol)
+{
+    var topLeftTile = tiles.First(x => x.Row == startRow && x.Col == startCol);
+    var entryResult = topLeftTile.HandleBeam(startDirection);
+    beams[0].MoveTo(topLeftTile, entryResult.Direction);
 
-// question 2
-Console.WriteLine($"Part 2 Answer: {true}");
+    while (beams.Any(x => !x.Done))
+    {
+        var temp = beams.Where(x => !x.Done).ToArray();
+        for (int i = 0; i < temp.Length; i++)
+        {
+            var beam = temp[i];
+            (int row, int col) = beam.GetNextTilePosition();
+            if (OutOfBounds(row, col))
+            {
+                beam.Done = true;
+                continue;
+            }
+
+            var tile = tiles.First(x => x.Row == row && x.Col == col);
+            var result = tile.HandleBeam(beam._direction);
+
+            if (result.Visited)
+            {
+                beam.Done = true;
+                continue;
+            }
+
+            if (result.Split)
+            {
+                // split
+                beam.MoveTo(tile, result.Direction);
+
+                var newBeam = new Beam();
+                newBeam.MoveTo(tile, result.SplitDirection);
+                beams.Add(newBeam);
+            }
+            else
+            {
+                // no split
+                beam.MoveTo(tile, result.Direction);
+            }
+        }
+    }
+
+    return tiles.Count(x => x.Energized);
+}
+
+bool OutOfBounds(int row, int col)
+{
+    return row < 0 || row > maxRow || col < 0 || col > maxCol;
+}
+
+
+Console.WriteLine($"Answer: {maxEnergized}");
 
 abstract class Tile
 {
@@ -81,7 +130,7 @@ abstract class Tile
     public BeamResult HandleBeam(Direction incoming)
     {
         if (_tracked.Contains(incoming))
-            return new BeamResult() {  Visited = true };
+            return new BeamResult() { Visited = true };
 
         _tracked.Add(incoming);
 
@@ -92,6 +141,12 @@ abstract class Tile
 
 
     private HashSet<Direction> _tracked = new HashSet<Direction>();
+
+    public void Cleanup()
+    {
+        _tracked.Clear();
+        Energized = false;
+    }
 }
 
 class Beam
@@ -102,7 +157,7 @@ class Beam
 
     public (int row, int col) GetNextTilePosition()
     {
-        var tile = _tiles.Peek();
+        var tile = _tiles.Pop();
         return _direction switch
         {
             Direction.Up => (tile.Row - 1, tile.Col),
@@ -115,7 +170,7 @@ class Beam
 
     public Beam()
     {
-        
+
     }
 
     public void MoveTo(Tile tile, Direction direction)
@@ -124,15 +179,18 @@ class Beam
         _direction = direction;
     }
 
-    //public void Split()
+    public void Cleanup()
+    {
+        _tiles.Clear();
+    }
 }
 
 enum Direction
 {
-    Right  = 0,
-    Down   = 1,
-    Left   = 2,
-    Up     = 3
+    Right = 0,
+    Down = 1,
+    Left = 2,
+    Up = 3
 }
 
 struct BeamResult
