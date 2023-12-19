@@ -1,6 +1,6 @@
 ﻿// Parabolic Reflector Dish
 
-using System.Diagnostics;
+using System.Text;
 
 var lines = File.ReadAllLines("input.txt");
 
@@ -24,25 +24,22 @@ var platform = new Platform(rocks, lines.Count(), lines[0].Length);
 
 long iterations = 1;
 iterations = 1_000_000_000;
-
-long sampleSize = 1000;
-
-Stopwatch stopwatch = Stopwatch.StartNew();
-for (int i = 0; i < iterations; i++)
+var lookingForLoop = true;
+for (long i = 0; i < iterations; i++)
 {
-    platform.Cycle();
-    if (i > 0 && i % sampleSize == 0)
-        break;
+    var (foundLoop, loopLength) = platform.Cycle(lookingForLoop);
+
+    if (foundLoop)
+    {
+        var skip = ((iterations - i) / loopLength) * loopLength;
+        i += skip;
+        lookingForLoop = false;
+    }
 }
-stopwatch.Stop();
-
-var totalSeconds = (stopwatch.ElapsedMilliseconds / 1000) * (iterations / sampleSize);
-var timespan = TimeSpan.FromSeconds(totalSeconds);
-
 var sum = platform.GetNorthernLoad();
 
-// question 1
-Console.WriteLine($"Answer: {timespan.TotalHours}");
+// question 2
+Console.WriteLine($"Answer: {sum}");
 
 class Rock
 {
@@ -56,14 +53,17 @@ class Rock
     public int Row { get; set; }
     public int Col { get; set; }
     public bool CanMove { get; }
+
+    public override string ToString()
+    {
+        return $"{Row}{Col}{CanMove}";
+    }
 }
 
 class Platform
 {
     public Platform(List<Rock> rocks, int maxRow, int maxCol)
     {
-        //Rocks = rocks;
-
         foreach (var rock in rocks)
         {
             Rocks.Add(rock);
@@ -71,13 +71,14 @@ class Platform
 
         MaxRow = maxRow;
         MaxCol = maxCol;
+
+        _observedConfigurations.Add(GetConfig(), 0);
     }
 
     public HashSet<Rock> Rocks { get; } = new();
     public int MaxRow { get; }
     public int MaxCol { get; }
 
-    //static void SlideRocks(IEnumerable<Rock> rocks, int start, bool incrementing, Func<Rock, int> position, Func<Rock, int> section, Action<Rock, int> slide)
     static void SlideRocks(IEnumerable<Rock> rocks, int start, bool incrementing, bool horizontal)
     {
         var previousSection = -1;
@@ -131,20 +132,35 @@ class Platform
         }
     }
 
-    public void Cycle()
+    Dictionary<string, int> _observedConfigurations = new Dictionary<string, int>();
+
+    public (bool, int) Cycle(bool lookingForLoop)
     {
         TiltNorth();
-        //Dump();
         TiltWest();
         TiltSouth();
         TiltEast();
         //Dump();
+
+        if (lookingForLoop && SeenConfigurationBefore())
+        {
+            var loopStart = _observedConfigurations[GetConfig()];
+            var loopLength = _observedConfigurations.Count - loopStart;
+            return (true, loopLength);
+        }
+
+        return (false, 0);
     }
 
-    //void TiltNorth() => SlideRocks(Rocks.OrderBy(x => x.Col).ThenBy(x => x.Row), 0, true, rock => rock.Row, rock => rock.Col, (rock, amount) => rock.Row -= amount);
-    //void TiltSouth() => SlideRocks(Rocks.OrderBy(x => x.Col).ThenByDescending(x => x.Row), MaxCol - 1, false, rock => rock.Row, rock => rock.Col, (rock, amount) => rock.Row -= amount);
-    //void TiltWest() => SlideRocks(Rocks.OrderBy(x => x.Row).ThenBy(x => x.Col), 0, true, rock => rock.Col, rock => rock.Row, (rock, amount) => rock.Col -= amount);
-    //void TiltEast() => SlideRocks(Rocks.OrderBy(x => x.Row).ThenByDescending(x => x.Col), MaxRow - 1, false, rock => rock.Col, rock => rock.Row, (rock, amount) => rock.Col -= amount);
+    bool SeenConfigurationBefore()
+    {
+        var config = GetConfig();
+        if (_observedConfigurations.ContainsKey(config))
+            return true;
+
+        _observedConfigurations.Add(config, _observedConfigurations.Count);
+        return false;
+    }
 
     void TiltNorth() => SlideRocks(Rocks.OrderBy(x => x.Col).ThenBy(x => x.Row), 0, true, false);
     void TiltSouth() => SlideRocks(Rocks.OrderBy(x => x.Col).ThenByDescending(x => x.Row), MaxCol - 1, false, false);
@@ -158,8 +174,11 @@ class Platform
         return sum;
     }
 
-    void Dump()
+    string GetConfig() => string.Join(string.Empty, Rocks.OrderBy(x => x.Col).ThenBy(x => x.Row).Select(x => x.ToString()));
+
+    string Dump(bool toConsole = true)
     {
+        var sb = new StringBuilder();
         for (int row = 0; row < MaxRow; row++)
         {
             for (int col = 0; col < MaxCol; col++)
@@ -167,14 +186,21 @@ class Platform
                 var rock = Rocks.FirstOrDefault(x => x.Row == row && x.Col == col);
                 if (rock is null)
                 {
-                    Console.Write(".");
+                    sb.Append(".");
                     continue;
                 }
 
-                Console.Write(rock.CanMove ? "O" : "#");
+                sb.Append(rock.CanMove ? "O" : "#");
             }
-            Console.WriteLine();
+            sb.AppendLine();
         }
-        Console.WriteLine();   
+        sb.AppendLine();
+
+        var s = sb.ToString();
+        if (toConsole)
+        {
+            Console.WriteLine(s);
+        }
+        return s;
     }
 }
