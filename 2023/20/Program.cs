@@ -47,30 +47,15 @@ foreach (var module in modules.Where(x => x.Value.GetType() == typeof(Conjunctio
 }
 
 long buttonPressCount = 0;
-//List<Pulse> rxPulses = [];
 bool hasRxLowPulse = false;
+string[] importantModules = ["mk", "fp", "xt", "zc"];
 
 // Iterate 1000 button presses
-for (long i = 0; i < 1_000_000_000_000_000; i++)
+for (long i = 0; i < 10_000_0000; i++)
 {
     await writer.WriteAsync(new Work(Pulse.Low, "button", string.Empty));
     while (reader.TryRead(out var workItem))
     {
-        //if (workItem.SourceModule != "button")
-        //{
-        //    if (workItem.Pulse == Pulse.High)
-        //    {
-        //        highPulseCount++;
-        //    }
-        //    else
-        //    {
-        //        lowPulseCount++;
-        //    }
-        //}
-
-        //if (workItem.SourceModule != string.Empty)
-        //    Console.WriteLine($"{workItem.SourceModule} -{workItem.Pulse}-> {workItem.DestinationModule}");
-
         if (modules.TryGetValue(workItem.DestinationModule, out var module))
         {
             await module.HandleWork(workItem, writer);
@@ -79,10 +64,6 @@ for (long i = 0; i < 1_000_000_000_000_000; i++)
         if (workItem.DestinationModule == "rx" && workItem.Pulse == Pulse.Low)
         {
             hasRxLowPulse = true;
-            //if (workItem.Pulse == Pulse.Low)
-            //    Debug.Fail("Arst");
-
-            //rxPulses.Add(workItem.Pulse);
         }       
     }
 
@@ -93,27 +74,19 @@ for (long i = 0; i < 1_000_000_000_000_000; i++)
         break;
     }
 
-    //if (rxPulses.Count == 1 && rxPulses.All(x => x == Pulse.Low))
-    //{
-    //    // done
-    //    break;
-    //}
-    //else
-    //{
-    //    rxPulses.Clear();
-    //}
-
     if (buttonPressCount % 500_000 == 0)
     {
         await Console.Out.WriteLineAsync(buttonPressCount.ToString());
     }
 
-    //Console.WriteLine();
+    foreach (var item in modules.Where(x => importantModules.Contains(x.Key)))
+    {
+        var output = ((Conjunction)item.Value).Output;
+        if (output == Pulse.High)
+            await Console.Out.WriteLineAsync($"{i}) {item.Key} = ");
+    }
+    //await Console.Out.WriteLineAsync();
 }
-
-// Answer 1
-//Console.WriteLine($"Answer: {lowPulseCount} * {highPulseCount} = {lowPulseCount * highPulseCount}");
-
 // Answer 2
 Console.WriteLine($"Answer: {buttonPressCount}");
 
@@ -200,6 +173,10 @@ class Conjunction : Module, IModule
 
         await Broadcast(output, workQueue);
     }
+
+    public Pulse Output => InputModules.Values.All(x => x == Pulse.High)
+            ? Pulse.Low
+            : Pulse.High;
 }
 
 class Broadcaster : Module, IModule
