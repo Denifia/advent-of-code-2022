@@ -3,12 +3,7 @@ param (
     [string]$day = $(Get-Date -UFormat "%d")
 )
 
-if(-not(Test-Path -Path $year\$day\$day.csproj -PathType Leaf))
-{
-    New-Item -ItemType Directory -Force -Path .\$year\$day
-    Set-Location .\$year\$day
-    dotnet new aoc
-    Set-Location ..\..
-}
+dotnet new aoc -o 2024\01
+dotnet sln add 2024\01\01.csproj
 
-Invoke-Item $year\$day\$day.csproj
+Invoke-Item advent-of-code.sln
