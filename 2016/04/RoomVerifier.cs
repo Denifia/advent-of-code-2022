@@ -1,8 +1,4 @@
-﻿using System.Linq;
-using System.Collections;
-using Xunit;
-
-namespace _04;
+﻿namespace _04;
 
 internal class RoomVerifier
 {
