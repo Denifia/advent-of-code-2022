@@ -19,7 +19,7 @@ internal class Room
     {
         _data = data;
         var dataLength = data.Length;
-        _encryptedName = new Range(0, dataLength - _sectorIdLength - _outerChecksumLength);
+        _encryptedName = new Range(0, dataLength - _sectorIdLength - _outerChecksumLength - 1);
         _checksum = new Range(dataLength - _outerChecksumLength + 1, dataLength - 1);
         _sectorId = new Range(dataLength - _sectorIdLength - _outerChecksumLength, dataLength - _outerChecksumLength);
     }
